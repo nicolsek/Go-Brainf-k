@@ -14,70 +14,106 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 )
+
+var brainFuck *brainFuckProgram
+
+const (
+	//INCREMENT_POINTER ... Increments the pointer.
+	INCREMENT_POINTER = iota
+	//DECREMENT_POINTER ... Decrements the pointer.
+	DECREMENT_POINTER
+	//INCREMENT_CELL ... Increments the cell value.
+	INCREMENT_CELL
+	//DECREMENT_CELL ... Decrements the cell value.
+	DECREMENT_CELL
+	//OUTPUT_VALUE ... Outputs the value of the cell at the selected pointer.
+	OUTPUT_VALUE
+	//INPUT_VALUE ... Takes a character input and stores that value into the cell.
+	INPUT_VALUE
+	//JUMP_LOOP_START ... Run code between [] if cell is non-zero.
+	JUMP_LOOP_START
+	//JUMP_LOOP_END ... Jump back to the [ if cell is non-zero.
+	JUMP_LOOP_END
+)
+
+type brainFuckProgram struct {
+	//Easier for my brain to read \-(.-.)-/
+	cells [30 * 1000]byte
+	ptr   int
+}
+
+func init() {
+	brainFuck = new(brainFuckProgram)
+	brainFuck.ptr = 0
+}
 
 // main ... The main function.
 func main() {
-	parseAndExec(parseInput())
+	parseCommands(parseInput())
 }
 
 // parseAndExec ... Parses the string given and executes the commands sequentially.
-func parseAndExec(commands []string) {
-	//Pointer acceser for each cell position.
-	ptr := 0
-	//Typically 30,000
-	cellCount := 30000
-	//Creating the cells that will be used.
-	cells := make([]byte, cellCount)
+func parseCommands(commands []string) {
+	for _, command := range commands {
+		for _, val := range []byte(command) {
+			if val == '>' {
+				execOpCode(INCREMENT_POINTER)
+			}
 
-	execCommands := func(s string) {}
-	execCommands = func(s string) {
-		for i := 0; i+1 <= len(s); i++ {
-			switch string(s[i : i+1]) {
-			case ">":
-				ptr++
-			case "<":
-				ptr--
-			case "+":
-				cells[ptr]++
-			case "-":
-				cells[ptr]--
-			case ".":
-				fmt.Printf("%v", string(cells[ptr]))
-			case ",":
-				reader := bufio.NewReader(os.Stdin)
-				fmt.Printf("Enter Char: ")
-				text, _ := reader.ReadString('\n')
-				cells[ptr] = []byte(text)[0]
-			case "[":
-				getInbetween := func(str, start, end string) (string, int) {
-					s := strings.Index(str, start)
-					s += len(start)
-					e := strings.Index(str, end)
-					return str[s:e], e
-				}
+			if val == '<' {
+				execOpCode(DECREMENT_POINTER)
 
-				loopIndex := i
-				codeToExec := ""
-				codeToExec, loopIndex = getInbetween(s[loopIndex:], "[", "]")
+			}
 
-				for cells[ptr] > 0 {
-					execCommands(codeToExec)
-				}
+			if val == '+' {
+				execOpCode(INCREMENT_CELL)
+			}
 
-			case ";":
-				fmt.Printf("%v", cells[ptr])
+			if val == '-' {
+				execOpCode(DECREMENT_CELL)
+			}
+
+			if val == '.' {
+				execOpCode(OUTPUT_VALUE)
+			}
+
+			if val == ',' {
+				execOpCode(INPUT_VALUE)
+			}
+
+			if val == '[' {
+				execOpCode(JUMP_LOOP_START)
+			}
+
+			if val == ']' {
+				execOpCode(JUMP_LOOP_END)
 			}
 		}
 	}
+}
 
-	for i := 0; i+1 <= len(commands); i++ {
-		command := commands[i : i+1]
+func execOpCode(opCode byte) {
+	cells := &brainFuck.cells
+	ptr := &brainFuck.ptr
+	switch opCode {
+	case INCREMENT_POINTER:
+		*ptr++
+	case DECREMENT_POINTER:
+		*ptr--
+	case INCREMENT_CELL:
+		cells[*ptr]++
+	case DECREMENT_CELL:
+		cells[*ptr]--
+	case OUTPUT_VALUE:
+		fmt.Printf("%v", string(cells[*ptr]))
+	case INPUT_VALUE:
+		reader := bufio.NewReader(os.Stdin)
+		val, _ := reader.ReadString('\n')
+		cells[*ptr] = ([]byte(val))[0]
+	case JUMP_LOOP_START:
 
-		for _, str := range command {
-			execCommands(str)
-		}
+	case JUMP_LOOP_END:
 	}
 }
 
